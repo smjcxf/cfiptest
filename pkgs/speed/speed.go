@@ -60,15 +60,47 @@ type CFSpeedTest struct {
 	SpeedTestThread   int
 	DelayTestURL      string
 	SpeedTestURL      string
+	TestWebSocket     bool
 	MaxSpeedTestCount int
 	MaxDelayCount     int
 	MinSpeed          float64
 	EnableTLS         bool
 	Shuffle           bool
 	VerboseMode       bool
+	FilterIATA        string
+	FilterIATASet     map[string]*struct{}
+}
+
+func (st *CFSpeedTest) SetFromEnv() {
+	val, ok := os.LookupEnv("CFIPTEST_DELAY_TEST_URL")
+	if ok && val != "" {
+		st.DelayTestURL = val
+		fmt.Println("延迟测试地址从环境变量获取：", st.DelayTestURL)
+	}
+
+	val, ok = os.LookupEnv("CFIPTEST_SPEED_TEST_URL")
+	if ok && val != "" {
+		st.SpeedTestURL = val
+		fmt.Println("速度测试地址从环境变量获取：", st.SpeedTestURL)
+	}
+}
+
+func (st *CFSpeedTest) PreSetArgs() {
+	st.SetFromEnv()
+
+	iatas := strings.Split(st.FilterIATA, ",")
+	if len(iatas) > 0 && iatas[0] != "" {
+		st.FilterIATASet = make(map[string]*struct{})
+		for _, iata := range iatas {
+			st.FilterIATASet[iata] = &struct{}{}
+		}
+	}
+
 }
 
 func (st *CFSpeedTest) Run() {
+	st.PreSetArgs()
+
 	startTime := time.Now()
 	locationMap := st.GetLocationMap()
 	if locationMap == nil {
